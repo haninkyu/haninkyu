@@ -1,7 +1,7 @@
 import JSZip from 'jszip';
-import { MeasurementData } from '../types';
+import { MeasurementData, Sheet } from '../types';
 
-export const exportData = async (data: MeasurementData, attachment: File | null) => {
+export const exportSheetData = async (sheet: Sheet) => {
   // Define headers mapping
   const headers = {
     receptionNumber: '접수번호',
@@ -23,31 +23,47 @@ export const exportData = async (data: MeasurementData, attachment: File | null)
     blankTest3: '공시험3'
   };
 
-  // Create CSV content
-  const headerRow = Object.values(headers).join(',') + '\n';
-  const dataRow = Object.keys(headers).map(key => {
-    const value = data[key as keyof MeasurementData];
+  // Create CSV content (One row for the current sheet)
+  const headerRow = '사이트명,' + Object.values(headers).join(',') + '\n';
+  
+  const rowData = Object.keys(headers).map(key => {
+    const value = sheet.data[key as keyof MeasurementData];
     // Escape quotes and wrap in quotes to handle commas in data
-    return `"${String(value).replace(/"/g, '""')}"`;
-  }).join(',') + '\n';
+    return `"${String(value || '').replace(/"/g, '""')}"`;
+  }).join(',');
+  
+  const dataRow = `"${sheet.name}",${rowData}`;
 
   const csvContent = "\uFEFF" + headerRow + dataRow; // Add BOM for Excel utf-8 compatibility
-  const fileNameBase = `raw_data_${data.receptionNumber || 'export'}`;
+  
+  // Filename base: ReceptionNumber_Model_SerialNumber
+  const sanitize = (str: string) => (str || '').trim().replace(/[\\/:*?"<>|\s]/g, '_');
+  
+  const fReception = sanitize(sheet.data.receptionNumber) || '접수번호미입력';
+  const fModel = sanitize(sheet.data.model) || '모델미입력';
+  const fSerial = sanitize(sheet.data.serialNumber) || '제조번호미입력';
 
-  if (attachment) {
+  const fileNameBase = `${fReception}_${fModel}_${fSerial}`;
+
+  // 1. Always download CSV directly
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  downloadFile(blob, `${fileNameBase}.csv`);
+
+  // 2. If attachments exist for this sheet, zip them
+  if (sheet.files && sheet.files.length > 0) {
     const zip = new JSZip();
-    // Add CSV file to the zip
-    zip.file(`${fileNameBase}.csv`, csvContent);
-    // Add the attachment to the zip
-    zip.file(attachment.name, attachment);
+    
+    // Add files to the root of the zip
+    sheet.files.forEach((file) => {
+      zip.file(file.name, file);
+    });
 
-    // Generate ZIP file
     const zipBlob = await zip.generateAsync({ type: 'blob' });
-    downloadFile(zipBlob, `${fileNameBase}.zip`);
-  } else {
-    // Create blob and download CSV directly if no attachment
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    downloadFile(blob, `${fileNameBase}.csv`);
+    
+    // Download ZIP with a slight delay to ensure browser handles both downloads
+    setTimeout(() => {
+      downloadFile(zipBlob, `${fileNameBase}_images.zip`);
+    }, 500);
   }
 };
 

@@ -2,7 +2,7 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#ffffff" />
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -14,6 +14,7 @@
     <style>
       body {
         font-family: 'Noto Sans KR', sans-serif;
+        overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile */
       }
       /* Custom scrollbar for table overflow */
       .scrollbar-hide::-webkit-scrollbar {
@@ -36,7 +37,7 @@
 }
 </script>
 </head>
-  <body class="bg-gray-50 text-gray-900">
+  <body class="bg-gray-50 text-gray-900 select-none">
     <div id="root"></div>
     <script>
       if ('serviceWorker' in navigator) {

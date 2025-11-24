@@ -18,4 +18,11 @@ export interface MeasurementData {
   blankTest3: string;
 }
 
+export interface Sheet {
+  id: string;
+  name: string;
+  data: MeasurementData;
+  files: File[];
+}
+
 export type MeasurementField = keyof MeasurementData;
